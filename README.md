@@ -16,22 +16,18 @@ date	feature1	feature2	...
 2023/01/01	0.523	1.234	...
 ## 运行后自动生成包含以下内容的输出目录：
  ├── config.txt             # 保存的训练配置
+ 
  ├── xlstm_model.pth        # 训练好的模型权重
+ 
  ├── training_history.png   # 训练损失曲线
+ 
  ├── test_metrics.csv       # 测试集评估指标
+ 
  ├── prediction_*.png       # 各特征预测对比图
+ 
  ├── test_confidence_*.png  # 带置信区间的预测图
+ 
  └── training_history.csv   # 训练过程数据
-
-
-
-
-
-
-
-
-
-
 
 
 ## 环境要求
