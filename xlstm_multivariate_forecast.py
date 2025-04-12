@@ -351,7 +351,7 @@ def save_metrics_to_csv(results, output_path):
 
 def plot_time_series_comparison(true_values, pred_values, dates, feature_names, output_dir, title_prefix=""):
     """
-    绘制时间序列预测结果对比图，并将数据保存为CSV
+    绘制时间序列预测结果对比图，并将数据保存为CSV，确保每个日期只有一个预测值
     """
     # 确保日期是datetime类型
     if isinstance(dates[0], str):
@@ -376,22 +376,25 @@ def plot_time_series_comparison(true_values, pred_values, dates, feature_names, 
         plt.savefig(os.path.join(output_dir, f'{title_prefix}prediction_{feature}.png'), dpi=300)
         plt.close()
 
-        # 将数据保存为CSV
+        # 将数据保存为CSV，使用日期作为索引以确保没有重复
         plot_df = pd.DataFrame({
-            'Date': dates,
             'Actual': true_values[:, i],
             'Predicted': pred_values[:, i]
-        })
+        }, index=dates)
+
+        # 确保索引排序，便于查看
+        plot_df = plot_df.sort_index()
+
         csv_path = os.path.join(output_dir, f'{title_prefix}prediction_{feature}.csv')
-        plot_df.to_csv(csv_path, index=False)
+        plot_df.to_csv(csv_path)
         print(f"图表数据已保存到: {csv_path}")
 
 
-def plot_test_with_confidence(test_dates, test_true, test_pred, last_week_dates,
-                              last_week_true, last_week_pred, feature_names,
-                              scaler, output_dir):
+def plot_test_with_confidence(test_dates, test_true, test_pred, last_pred_dates,
+                              last_pred_true, last_pred_pred, feature_names,
+                              scaler, output_dir, future_days):
     """
-    绘制测试集带有95%置信区间的图，区分测试集最后7天和前面部分，并将数据保存为CSV
+    绘制测试集带有95%置信区间的图，区分测试集最后预测天数和前面部分，并将数据保存为CSV
     """
     # 获取测试集误差统计
     errors = np.abs(test_pred - test_true)
@@ -400,9 +403,9 @@ def plot_test_with_confidence(test_dates, test_true, test_pred, last_week_dates,
         plt.figure(figsize=(14, 6))
 
         # 测试集前部分
-        test_dates_main = test_dates[:-len(last_week_dates)]
-        test_true_main = test_true[:-(len(last_week_dates)), i]
-        test_pred_main = test_pred[:-(len(last_week_dates)), i]
+        test_dates_main = test_dates[:-len(last_pred_dates)]
+        test_true_main = test_true[:-(len(last_pred_dates)), i]
+        test_pred_main = test_pred[:-(len(last_pred_dates)), i]
 
         # 绘制测试集主要部分，使用细线
         plt.plot(test_dates_main, test_true_main, 'b-', linewidth=1.5, label='测试集实际值')
@@ -412,9 +415,9 @@ def plot_test_with_confidence(test_dates, test_true, test_pred, last_week_dates,
         mean_error = np.mean(errors[:, i])
         std_error = np.std(errors[:, i])
 
-        # 绘制测试集最后7天，使用不同颜色的实线
-        plt.plot(last_week_dates, last_week_true[:, i], 'g-', linewidth=1.5, label='最后7天实际值')
-        plt.plot(last_week_dates, last_week_pred[:, i], 'm-', linewidth=1.5, label='最后7天预测值')
+        # 绘制测试集最后预测天数，使用不同颜色的实线
+        plt.plot(last_pred_dates, last_pred_true[:, i], 'g-', linewidth=1.5, label=f'最后{future_days}天实际值')
+        plt.plot(last_pred_dates, last_pred_pred[:, i], 'm-', linewidth=1.5, label=f'最后{future_days}天预测值')
 
         # 添加置信区间（基于整个测试集误差）
         upper_bound = test_pred_main + 1.96 * std_error
@@ -422,10 +425,10 @@ def plot_test_with_confidence(test_dates, test_true, test_pred, last_week_dates,
         plt.fill_between(test_dates_main, lower_bound, upper_bound,
                          color='r', alpha=0.1, label='95% 置信区间')
 
-        # 为最后7天添加置信区间
-        upper_bound_last = last_week_pred[:, i] + 1.96 * std_error
-        lower_bound_last = last_week_pred[:, i] - 1.96 * std_error
-        plt.fill_between(last_week_dates, lower_bound_last, upper_bound_last,
+        # 为最后预测天数添加置信区间
+        upper_bound_last = last_pred_pred[:, i] + 1.96 * std_error
+        lower_bound_last = last_pred_pred[:, i] - 1.96 * std_error
+        plt.fill_between(last_pred_dates, lower_bound_last, upper_bound_last,
                          color='m', alpha=0.1)
 
         # 添加垂直线分隔
@@ -445,35 +448,35 @@ def plot_test_with_confidence(test_dates, test_true, test_pred, last_week_dates,
         plt.close()
 
         # 将数据保存为CSV
-        # 测试集主要部分数据
+        # 测试集主要部分数据 - 使用日期作为索引以确保没有重复
         main_data = {
-            'Date': test_dates_main,
             'Actual': test_true_main,
             'Predicted': test_pred_main,
             'LowerBound': lower_bound,
             'UpperBound': upper_bound
         }
-        main_df = pd.DataFrame(main_data)
+        main_df = pd.DataFrame(main_data, index=test_dates_main)
+        main_df = main_df.sort_index()  # 确保索引排序
 
-        # 最后7天数据
-        last_week_data = {
-            'Date': last_week_dates,
-            'Actual': last_week_true[:, i],
-            'Predicted': last_week_pred[:, i],
+        # 最后预测天数数据 - 使用日期作为索引以确保没有重复
+        last_pred_data = {
+            'Actual': last_pred_true[:, i],
+            'Predicted': last_pred_pred[:, i],
             'LowerBound': lower_bound_last,
             'UpperBound': upper_bound_last
         }
-        last_week_df = pd.DataFrame(last_week_data)
+        last_pred_df = pd.DataFrame(last_pred_data, index=last_pred_dates)
+        last_pred_df = last_pred_df.sort_index()  # 确保索引排序
 
         # 保存测试集主要部分数据
         main_csv_path = os.path.join(output_dir, f'test_confidence_main_{feature}.csv')
-        main_df.to_csv(main_csv_path, index=False)
+        main_df.to_csv(main_csv_path)
 
-        # 保存最后7天数据
-        last_week_csv_path = os.path.join(output_dir, f'test_confidence_last_week_{feature}.csv')
-        last_week_df.to_csv(last_week_csv_path, index=False)
+        # 保存最后预测天数数据
+        last_pred_csv_path = os.path.join(output_dir, f'test_confidence_last_{future_days}_days_{feature}.csv')
+        last_pred_df.to_csv(last_pred_csv_path)
 
-        print(f"置信区间图表数据已保存到: {main_csv_path} 和 {last_week_csv_path}")
+        print(f"置信区间图表数据已保存到: {main_csv_path} 和 {last_pred_csv_path}")
 
 
 def save_training_history(history, output_dir):
@@ -674,41 +677,49 @@ def main(args):
     save_metrics_to_csv(test_results, test_metrics_path)
 
     # ==================== 绘制测试集的预测结果 ====================
-    # 绘制测试集预测结果
+    # 修复：使用字典确保每个日期只有一个预测值
     print("\n绘制测试集预测结果...")
-    test_dates = []
-    test_true_values = []
-    test_pred_values = []
 
+    # 创建用于存储预测结果的字典，以日期为键
+    test_pred_by_date = {}
+    test_true_by_date = {}
+
+    # 收集数据并按日期进行整理，确保每个日期只有一个预测值
     for i in range(len(y_test)):
         sample_dates = y_test_dates[i]
         true_sample = y_test[i].numpy()
         pred_sample = y_test_pred[i]
 
-        # 收集数据用于绘图
         for j in range(len(sample_dates)):
-            test_dates.append(sample_dates[j])
-            test_true_values.append(true_sample[j])
-            test_pred_values.append(pred_sample[j])
+            date = sample_dates[j]
+            # 只保存每个日期的第一个预测值（或者可以选择取平均值）
+            if date not in test_pred_by_date:
+                test_pred_by_date[date] = pred_sample[j]
+                test_true_by_date[date] = true_sample[j]
 
-    # 将数据转为numpy array并排序
-    test_true_inv = scaler.inverse_transform(np.array(test_true_values))
-    test_pred_inv = scaler.inverse_transform(np.array(test_pred_values))
+    # 将字典转换为列表用于绘图和后续处理
+    test_dates = list(test_pred_by_date.keys())
+    test_true_values = np.array(list(test_true_by_date.values()))
+    test_pred_values = np.array(list(test_pred_by_date.values()))
 
-    # 排序
+    # 按日期排序
     sorted_indices = np.argsort(test_dates)
     sorted_test_dates = [test_dates[i] for i in sorted_indices]
-    sorted_test_true = test_true_inv[sorted_indices]
-    sorted_test_pred = test_pred_inv[sorted_indices]
+    sorted_test_true = test_true_values[sorted_indices]
+    sorted_test_pred = test_pred_values[sorted_indices]
+
+    # 反归一化
+    sorted_test_true_inv = scaler.inverse_transform(sorted_test_true)
+    sorted_test_pred_inv = scaler.inverse_transform(sorted_test_pred)
 
     # 绘制测试集结果
     plot_time_series_comparison(
-        sorted_test_true, sorted_test_pred, sorted_test_dates,
+        sorted_test_true_inv, sorted_test_pred_inv, sorted_test_dates,
         feature_names, output_dir, title_prefix="测试集_"
     )
 
-    # ==================== 测试集的最后七天 ====================
-    print("\n评估测试集的最后七天...")
+    # ==================== 测试集的最后预测天数 ====================
+    print(f"\n评估测试集的最后{n_future}天...")
 
     # 获取测试集最后一个样本
     last_test_sample = X_test[-1:].to(device)
@@ -727,18 +738,18 @@ def main(args):
     last_test_true_inv = scaler.inverse_transform(last_test_true)
     last_test_pred_inv = scaler.inverse_transform(last_test_pred)
 
-    # 保存为CSV
+    # 保存为CSV，使用日期为索引
     last_test_df = pd.DataFrame(
         np.column_stack([last_test_true_inv, last_test_pred_inv]),
         index=last_test_dates,
         columns=[f"{col}_真实值" for col in feature_names] + [f"{col}_预测值" for col in feature_names]
     )
-    last_test_df.to_csv(os.path.join(output_dir, 'last_week_prediction.csv'))
+    last_test_df.to_csv(os.path.join(output_dir, f'last_{n_future}_days_prediction.csv'))
 
-    # 绘制最后七天对比图
+    # 绘制最后预测天数对比图
     plot_time_series_comparison(
         last_test_true_inv, last_test_pred_inv, last_test_dates,
-        feature_names, output_dir, title_prefix="最后七天_"
+        feature_names, output_dir, title_prefix=f"最后{n_future}天_"
     )
 
     # ==================== 带有置信区间的测试集图表 ====================
@@ -746,9 +757,9 @@ def main(args):
 
     # 绘制测试集带有置信区间的图
     plot_test_with_confidence(
-        sorted_test_dates, sorted_test_true, sorted_test_pred,
+        sorted_test_dates, sorted_test_true_inv, sorted_test_pred_inv,
         last_test_dates, last_test_true_inv, last_test_pred_inv,
-        feature_names, scaler, output_dir
+        feature_names, scaler, output_dir, n_future
     )
 
     print(f"\n所有输出已保存到目录: {output_dir}")
@@ -757,8 +768,8 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='多变量多步XLSTM时间序列预测')
     parser.add_argument('--csv_file', type=str, required=True, help='CSV文件路径')
-    parser.add_argument('--past_days', type=int, default=31, help='用于预测的过去天数')
-    parser.add_argument('--future_days', type=int, default=7, help='需要预测的未来天数')
+    parser.add_argument('--past_days', type=int, default=30, help='用于预测的过去天数')
+    parser.add_argument('--future_days', type=int, default=15, help='需要预测的未来天数')
     parser.add_argument('--hidden_dim', type=int, default=128, help='XLSTM隐藏层维度')
     parser.add_argument('--num_layers', type=int, default=2, help='XLSTM层数')
     parser.add_argument('--dropout', type=float, default=0.2, help='Dropout比率')
