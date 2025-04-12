@@ -36,6 +36,8 @@ date	feature1	feature2	...
 - Python 3.7+
 - PyTorch 1.8+
 - CUDA 11.3+ (可选)
+- D:\Anaconda\envs\pytorch\python.exe xlstm_multivariate_forecast.py --csv_file my_test_data.csv
+- D:\Anaconda\envs\pytorch\python.exe  predict_from_test.py --csv_file my_test_data.csv --model_path output_20250412_223404/xlstm_model.pth --test_size 20 --last_n_days 30 --future_days 10
 
 ## 联系方式
 1218594966@qq.com(如需使用请引用xlstm文献作者文献，尊重原创)
