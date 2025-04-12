@@ -36,5 +36,6 @@ date	feature1	feature2	...
 - Python 3.7+
 - PyTorch 1.8+
 - CUDA 11.3+ (可选)
+
 ## 联系方式
 1218594966@qq.com(如需使用请引用xlstm文献作者文献，尊重原创)
