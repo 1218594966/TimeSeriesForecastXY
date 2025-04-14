@@ -1,0 +1,5 @@
+ID,Type,X,Y,Description
+DIS1,Discharge,500,500,主排放口
+DS1,Monitoring,600,510.5,下游1km监测点
+DS2,Monitoring,700,505.3,下游2km监测点
+DS3,Monitoring,800,515.7,下游3km监测点
