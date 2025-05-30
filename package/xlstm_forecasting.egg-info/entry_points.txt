@@ -1,3 +1,0 @@
-[console_scripts]
-xlstm-predict = predict:cli_main
-xlstm-train = main:cli_main

@@ -1,8 +1,0 @@
-README.md
-setup.py
-xlstm_forecasting.egg-info/PKG-INFO
-xlstm_forecasting.egg-info/SOURCES.txt
-xlstm_forecasting.egg-info/dependency_links.txt
-xlstm_forecasting.egg-info/entry_points.txt
-xlstm_forecasting.egg-info/requires.txt
-xlstm_forecasting.egg-info/top_level.txt

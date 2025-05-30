@@ -1,9 +1,0 @@
-csv_file: data.csv
-past_days: 30
-future_days: 15
-hidden_dim: 128
-num_layers: 2
-dropout: 0.2
-epochs: 100
-batch_size: 32
-learning_rate: 0.001

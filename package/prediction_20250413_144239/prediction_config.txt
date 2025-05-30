@@ -1,4 +1,0 @@
-model_path: output_20250413_143357/xlstm_model.pth
-new_data: data.csv
-past_days: 30
-future_days: 15
